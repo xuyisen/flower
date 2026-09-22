@@ -245,7 +245,7 @@ def _compute_distances(weights: list[NDArrays]) -> NDArray:
     Input: weights - list of weights vectors
     Output: distances - matrix distance_matrix of squared distances between the vectors
     """
-    flat_w = np.array([np.concatenate(p, axis=None).ravel() for p in weights])
+    flat_w: NDArray = np.array([np.concatenate(p, axis=None).ravel() for p in weights])
     distance_matrix = np.zeros((len(weights), len(weights)))
     for i, flat_w_i in enumerate(flat_w):
         for j, flat_w_j in enumerate(flat_w):
@@ -365,7 +365,7 @@ def _aggregate_n_closest_weights(
         for other_w in list_of_weights:
             other_weights_layer = other_w[layer_id]
             other_weights_layer_list.append(other_weights_layer)
-        other_weights_layer_np = np.array(other_weights_layer_list)
+        other_weights_layer_np: NDArray = np.array(other_weights_layer_list)
         diff_np = np.abs(layer_weights - other_weights_layer_np)
         # Create indices of the smallest differences
         # We do not need the exact order but just the beta closest weights

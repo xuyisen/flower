@@ -214,7 +214,7 @@ class ArrayRecord(TypedDict[str, Array], InflatableObject):
             # Type check the input
             # pylint: disable-next=not-an-iterable
             if isinstance(arg, list) and all(isinstance(v, np.ndarray) for v in arg):
-                numpy_ndarrays = cast(list[NDArray], arg)
+                numpy_ndarrays = arg
                 converted = self.from_numpy_ndarrays(
                     numpy_ndarrays, keep_input=keep_input
                 )
@@ -273,8 +273,6 @@ class ArrayRecord(TypedDict[str, Array], InflatableObject):
             record[str(i)] = Array.from_numpy_ndarray(ndarrays[i])
 
             if not keep_input:
-                # Remove the reference
-                ndarrays[i] = None  # type: ignore
                 total_serialized_bytes += len(record[str(i)].data)
 
                 # If total serialized data exceeds the threshold, trigger GC
