@@ -53,8 +53,8 @@ def aggregate_inplace(results: list[tuple[ClientProxy, FitRes]]) -> NDArrays:
     )
 
     def _try_inplace(
-        x: NDArray, y: Union[NDArray, np.float64], np_binary_op: np.ufunc
-    ) -> NDArray:
+        x: NDArray[Any], y: Union[NDArray[Any], np.float64], np_binary_op: np.ufunc
+    ) -> NDArray[Any]:
         return (  # type: ignore[no-any-return]
             np_binary_op(x, y, out=x)
             if np.can_cast(y, x.dtype, casting="same_kind")
@@ -239,7 +239,7 @@ def aggregate_qffl(
     return new_parameters
 
 
-def _compute_distances(weights: list[NDArrays]) -> NDArray:
+def _compute_distances(weights: list[NDArrays]) -> NDArray[Any]:
     """Compute distances between vectors.
 
     Input: weights - list of weights vectors
@@ -255,7 +255,7 @@ def _compute_distances(weights: list[NDArrays]) -> NDArray:
     return distance_matrix
 
 
-def _trim_mean(array: NDArray, proportiontocut: float) -> NDArray:
+def _trim_mean(array: NDArray[Any], proportiontocut: float) -> NDArray[Any]:
     """Compute trimmed mean along axis=0.
 
     It is based on the scipy implementation.
@@ -274,7 +274,7 @@ def _trim_mean(array: NDArray, proportiontocut: float) -> NDArray:
 
     slice_list = [slice(None)] * atmp.ndim
     slice_list[axis] = slice(lowercut, uppercut)
-    result: NDArray = np.mean(atmp[tuple(slice_list)], axis=axis)
+    result: NDArray[Any] = np.mean(atmp[tuple(slice_list)], axis=axis)
     return result
 
 

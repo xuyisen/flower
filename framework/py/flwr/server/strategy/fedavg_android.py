@@ -18,7 +18,7 @@ Paper: arxiv.org/abs/1602.05629
 """
 
 
-from typing import Callable, Optional, Union, cast
+from typing import Any, Callable, Optional, Union, cast
 
 import numpy as np
 
@@ -234,11 +234,11 @@ class FedAvgAndroid(Strategy):
         """Convert parameters object to NumPy weights."""
         return [self.bytes_to_ndarray(tensor) for tensor in parameters.tensors]
 
-    def ndarray_to_bytes(self, ndarray: NDArray) -> bytes:
+    def ndarray_to_bytes(self, ndarray: NDArray[Any]) -> bytes:
         """Serialize NumPy array to bytes."""
         return ndarray.tobytes()
 
-    def bytes_to_ndarray(self, tensor: bytes) -> NDArray:
+    def bytes_to_ndarray(self, tensor: bytes) -> NDArray[Any]:
         """Deserialize NumPy array from bytes."""
         ndarray_deserialized = np.frombuffer(tensor, dtype=np.float32)
-        return cast(NDArray, ndarray_deserialized)
+        return cast(NDArray[Any], ndarray_deserialized)

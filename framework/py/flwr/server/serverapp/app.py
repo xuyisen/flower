@@ -62,6 +62,7 @@ from flwr.proto.appio_pb2 import (  # pylint: disable=E0611
     PushAppOutputsRequest,
 )
 from flwr.proto.run_pb2 import UpdateRunStatusRequest  # pylint: disable=E0611
+from flwr.common.context import Context
 from flwr.server.grid.grpc_grid import GrpcGrid
 from flwr.server.run_serverapp import run as run_
 
@@ -116,6 +117,7 @@ def run_serverapp(  # pylint: disable=R0914, disable=W0212, disable=R0915
     run_status = None
     heartbeat_sender = None
     grid = None
+    context: Optional[Context] = None
     while True:
 
         try:
