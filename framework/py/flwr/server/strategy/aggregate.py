@@ -48,7 +48,7 @@ def aggregate_inplace(results: list[tuple[ClientProxy, FitRes]]) -> NDArrays:
     num_examples_total = sum(fit_res.num_examples for (_, fit_res) in results)
 
     # Compute scaling factors for each result
-    scaling_factors = np.asarray(
+    scaling_factors: np.ndarray[Any, Any] = np.asarray(
         [fit_res.num_examples / num_examples_total for _, fit_res in results]
     )
 
@@ -124,7 +124,7 @@ def aggregate_krum(
     if to_keep > 0:
         # Choose to_keep clients and return their average (MultiKrum)
         best_indices = np.argsort(scores)[::-1][len(scores) - to_keep :]  # noqa: E203
-        best_results = [results[i] for i in best_indices]
+        best_results = [results[i] for i in best_indices]  # type: ignore[index]
         return aggregate(best_results)
 
     # Return the model parameters that minimize the score (Krum)
@@ -226,16 +226,17 @@ def aggregate_qffl(
 ) -> NDArrays:
     """Compute weighted average based on Q-FFL paper."""
     demominator: float = np.sum(np.asarray(hs_fll))
-    scaled_deltas = []
+    scaled_deltas: list[list[NDArray]] = []
     for client_delta in deltas:
         scaled_deltas.append([layer * 1.0 / demominator for layer in client_delta])
     updates = []
     for i in range(len(deltas[0])):
         tmp = scaled_deltas[0][i]
+
         for j in range(1, len(deltas)):
             tmp += scaled_deltas[j][i]
         updates.append(tmp)
-    new_parameters = [(u - v) * 1.0 for u, v in zip(parameters, updates)]
+    new_parameters: NDArrays = [(u - v) * 1.0 for u, v in zip(parameters, updates)]
     return new_parameters
 
 
@@ -245,10 +246,10 @@ def _compute_distances(weights: list[NDArrays]) -> NDArray:
     Input: weights - list of weights vectors
     Output: distances - matrix distance_matrix of squared distances between the vectors
     """
-    flat_w = np.array([np.concatenate(p, axis=None).ravel() for p in weights])
-    distance_matrix = np.zeros((len(weights), len(weights)))
-    for i, flat_w_i in enumerate(flat_w):
-        for j, flat_w_j in enumerate(flat_w):
+    flat_w = np.array([np.concatenate(p, axis=None).ravel() for p in weights])  # type: ignore[attr-defined]
+    distance_matrix: np.ndarray[Any, Any] = np.zeros((len(weights), len(weights)))
+    for i, flat_w_i in enumerate(flat_w):  # type: ignore[var-annotated]
+        for j, flat_w_j in enumerate(flat_w):  # type: ignore[var-annotated]
             delta = flat_w_i - flat_w_j
             norm = np.linalg.norm(delta)
             distance_matrix[i, j] = norm**2
@@ -373,8 +374,8 @@ def _aggregate_n_closest_weights(
         indices = np.argpartition(diff_np, kth=beta_closest - 1, axis=0)
         # Take the weights (coordinate-wise) corresponding to the beta of the
         # closest distances
-        beta_closest_weights = np.take_along_axis(
+        beta_closest_weights: np.ndarray[Any, Any] = np.take_along_axis(
             other_weights_layer_np, indices=indices, axis=0
-        )[:beta_closest]
+        )[:beta_closest]  # type: ignore[index]
         aggregated_weights.append(np.mean(beta_closest_weights, axis=0))
     return aggregated_weights
