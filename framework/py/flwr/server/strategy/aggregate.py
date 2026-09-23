@@ -55,7 +55,7 @@ def aggregate_inplace(results: list[tuple[ClientProxy, FitRes]]) -> NDArrays:
     def _try_inplace(
         x: NDArray, y: Union[NDArray, np.float64], np_binary_op: np.ufunc
     ) -> NDArray:
-        return (  # type: ignore[no-any-return]
+        return (
             np_binary_op(x, y, out=x)
             if np.can_cast(y, x.dtype, casting="same_kind")
             else np_binary_op(x, np.array(y, x.dtype), out=x)
@@ -64,13 +64,13 @@ def aggregate_inplace(results: list[tuple[ClientProxy, FitRes]]) -> NDArrays:
     # Let's do in-place aggregation
     # Get first result, then add up each other
     params = [
-        _try_inplace(x, scaling_factors[0], np_binary_op=np.multiply)
+        _try_inplace(x, scaling_factors[0], np_binary_op=np.multiply)  # type: ignore[index]
         for x in parameters_to_ndarrays(results[0][1].parameters)
     ]
 
     for i, (_, fit_res) in enumerate(results[1:], start=1):
         res = (
-            _try_inplace(x, scaling_factors[i], np_binary_op=np.multiply)
+            _try_inplace(x, scaling_factors[i], np_binary_op=np.multiply)  # type: ignore[index]
             for x in parameters_to_ndarrays(fit_res.parameters)
         )
         params = [
@@ -123,7 +123,8 @@ def aggregate_krum(
 
     if to_keep > 0:
         # Choose to_keep clients and return their average (MultiKrum)
-        best_indices = np.argsort(scores)[::-1][len(scores) - to_keep :]  # noqa: E203
+        sorted_scores = np.argsort(scores)[::-1]  # type: ignore[index]
+        best_indices = sorted_scores[len(scores) - to_keep :]  # noqa: E203  # type: ignore[index]
         best_results = [results[i] for i in best_indices]
         return aggregate(best_results)
 
@@ -245,13 +246,13 @@ def _compute_distances(weights: list[NDArrays]) -> NDArray:
     Input: weights - list of weights vectors
     Output: distances - matrix distance_matrix of squared distances between the vectors
     """
-    flat_w = np.array([np.concatenate(p, axis=None).ravel() for p in weights])
+    flat_w = np.array([np.concatenate(p, axis=None).ravel() for p in weights])  # type: ignore[attr-defined]
     distance_matrix = np.zeros((len(weights), len(weights)))
-    for i, flat_w_i in enumerate(flat_w):
-        for j, flat_w_j in enumerate(flat_w):
+    for i, flat_w_i in enumerate(flat_w):  # type: ignore[var-annotated]
+        for j, flat_w_j in enumerate(flat_w):  # type: ignore[var-annotated]
             delta = flat_w_i - flat_w_j
             norm = np.linalg.norm(delta)
-            distance_matrix[i, j] = norm**2
+            distance_matrix[i, j] = norm**2  # type: ignore[index]
     return distance_matrix
 
 
@@ -375,6 +376,6 @@ def _aggregate_n_closest_weights(
         # closest distances
         beta_closest_weights = np.take_along_axis(
             other_weights_layer_np, indices=indices, axis=0
-        )[:beta_closest]
+        )[:beta_closest]  # type: ignore[index]
         aggregated_weights.append(np.mean(beta_closest_weights, axis=0))
     return aggregated_weights
