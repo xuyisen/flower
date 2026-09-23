@@ -21,6 +21,7 @@ from unittest.mock import Mock
 from flwr.common import Context, typing
 from flwr.common.message import make_message
 from flwr.common.serde import fab_to_proto, message_to_proto
+from flwr.common.inflatable import get_all_nested_objects, get_object_tree
 from flwr.common.serde_test import RecordMaker
 from flwr.proto.appio_pb2 import (  # pylint:disable=E0611
     PullAppInputsResponse,
@@ -28,6 +29,7 @@ from flwr.proto.appio_pb2 import (  # pylint:disable=E0611
     PushAppOutputsResponse,
 )
 from flwr.proto.message_pb2 import Context as ProtoContext  # pylint:disable=E0611
+from flwr.proto.message_pb2 import PullObjectResponse  # pylint:disable=E0611
 from flwr.proto.run_pb2 import Run as ProtoRun  # pylint:disable=E0611
 from flwr.supernode.runtime.run_clientapp import (
     pull_clientappinputs,
@@ -46,6 +48,28 @@ class TestClientAppIoServicer(unittest.TestCase):
         self.maker = RecordMaker()
         self.mock_stub = Mock()
 
+    def _create_pull_object_side_effect(self, message):
+        """Create a side effect for PullObject that returns the deflated content."""
+        nested = get_all_nested_objects(message)
+        # Include the message itself
+        all_objects = {message.object_id: message}
+        all_objects.update(nested)
+
+        def side_effect(request):
+            obj_id = request.object_id
+            if obj_id in all_objects:
+                return PullObjectResponse(
+                    object_found=True,
+                    object_available=True,
+                    object_content=all_objects[obj_id].deflate(),
+                )
+            return PullObjectResponse(
+                object_found=False,
+                object_available=False,
+                object_content=b"",
+            )
+        return side_effect
+
     def test_pull_clientapp_inputs(self) -> None:
         """Test pulling messages from SuperNode."""
         # Prepare
@@ -62,10 +86,14 @@ class TestClientAppIoServicer(unittest.TestCase):
             run=ProtoRun(run_id=61016, fab_id="mock/mock", fab_version="v1.0.0"),
             fab=fab_to_proto(mock_fab),
         )
+        object_tree = get_object_tree(mock_message)
         self.mock_stub.PullMessage.return_value = PullAppMessagesResponse(
-            messages_list=[message_to_proto(mock_message)]
+            message_object_trees=[object_tree]
         )
         self.mock_stub.PullClientAppInputs.return_value = mock_response
+        self.mock_stub.PullObject.side_effect = self._create_pull_object_side_effect(
+            mock_message
+        )
 
         # Execute
         message, context, run, fab = pull_clientappinputs(self.mock_stub, token="abc")
@@ -108,3 +136,24 @@ class TestClientAppIoServicer(unittest.TestCase):
         # Assert
         self.mock_stub.PushClientAppOutputs.assert_called_once()
         self.mock_stub.PushMessage.assert_called_once()
+
+    def test_pull_clientapp_inputs_empty_message_object_trees(self) -> None:
+        """Test pulling messages with empty message_object_trees."""
+        # Prepare
+        mock_fab = typing.Fab(
+            hash_str="abc123#$%",
+            content=b"\xf3\xf5\xf8\x98",
+        )
+        mock_response = PullAppInputsResponse(
+            context=ProtoContext(node_id=123),
+            run=ProtoRun(run_id=61016, fab_id="mock/mock", fab_version="v1.0.0"),
+            fab=fab_to_proto(mock_fab),
+        )
+        self.mock_stub.PullMessage.return_value = PullAppMessagesResponse(
+            message_object_trees=[]
+        )
+        self.mock_stub.PullClientAppInputs.return_value = mock_response
+
+        # Execute and assert
+        with self.assertRaises(ValueError):
+            pull_clientappinputs(self.mock_stub, token="abc")
